@@ -1,0 +1,332 @@
+swagger: "2.0"
+info:
+  description: "This is a financial transaction service API"
+  version: "1.0.0"
+  title: "Swagger financial API"
+  license:
+    name: "Apache 2.0"
+    url: "http://www.apache.org/licenses/LICENSE-2.0.html"
+basePath: "/v2"
+tags:
+  - name: transaction
+    description: a transaction to a specific customer's account
+  - name: customer
+    description: information about customer
+  - name: account
+    description: information about a customer's account
+  - name: transactionInfo
+    description: transactionInfo is for a transaction with customer and account information
+schemes:
+  - https
+  - http
+paths:
+  /transaction:
+    post:
+      tags:
+        - transaction
+      summary: Add a new transaction to a customer's account
+      description: ''
+      operationId: addTransaction
+      consumes:
+        - application/json
+        - application/xml
+      produces:
+        - application/xml
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          description: Transaction object that needs to be added
+          required: true
+          schema:
+            $ref: '#/definitions/Transaction'
+      responses:
+        '405':
+          description: Invalid input
+  /transaction/{transactionId}:
+    get:
+      tags:
+        - transaction
+      summary: Find transaction by ID
+      description: Returns a single transaction
+      operationId: getTransactionById
+      produces:
+        - application/xml
+        - application/json
+      parameters:
+        - name: transactionId
+          in: path
+          description: ID of transaction to return
+          required: true
+          type: integer
+          format: int64
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/Transaction'
+        '400':
+          description: Invalid ID supplied
+        '404':
+          description: Transaction not found
+  /transaction/info:
+    get:
+      tags:
+        - transactionInfo
+      summary: Find transactionInfo with customer and account information by transaction ID
+      description: Returns a single transactionInfo with customer and account information
+      operationId: getTransactionInfoById
+      produces:
+        - application/xml
+        - application/json
+      parameters:
+        - name: transactionId
+          in: query
+          description: ID of transaction that needs to be considered for filter and join with customer and account
+          required: true
+          type: integer
+          format: int64
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/TransactionInfo'
+  /customer:
+    post:
+      tags:
+        - customer
+      description: ''
+      operationId: createACustomer
+      produces:
+        - application/xml
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          description: create a customer
+          required: true
+          schema:
+            $ref: '#/definitions/Customer'
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/Customer'
+        '400':
+          description: Invalid Customer
+  /customer/{customerId}:
+    get:
+      tags:
+        - customer
+      summary: Find a customer by ID
+      description: >-
+        For valid response try integer IDs with value >= 1 and <= 10.
+        Other values will generated exceptions
+      operationId: getCustomerById
+      produces:
+        - application/xml
+        - application/json
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of customer that needs to be fetched
+          required: true
+          type: integer
+          maximum: 10
+          minimum: 1
+          format: int64
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/Customer'
+        '400':
+          description: Invalid ID supplied
+        '404':
+          description: Customer not found
+  /account:
+    post:
+      tags:
+        - account
+      description: ''
+      operationId: createAccount
+      produces:
+        - application/xml
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          description: create a account
+          required: true
+          schema:
+            $ref: '#/definitions/Account'
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/Account'
+        '400':
+          description: Invalid account
+  /account/{accountId}:
+    get:
+      tags:
+        - account
+      summary: Find a account by ID
+      description: >-
+        For valid response try integer IDs with value >= 1 and <= 10.
+        Other values will generated exceptions
+      operationId: getAccountById
+      produces:
+        - application/xml
+        - application/json
+      parameters:
+        - name: accountId
+          in: path
+          description: ID of account that needs to be fetched
+          required: true
+          type: integer
+          maximum: 10
+          minimum: 1
+          format: int64
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/Account'
+        '400':
+          description: Invalid ID supplied
+        '404':
+          description: Customer not found
+definitions:
+  Transaction:
+    type: object
+    properties:
+      transactionId:
+        type: integer
+        format: int64
+      customerId:
+        type: integer
+        format: int64
+      amount:
+        type: number
+        format: float
+      creditOrDebit:
+        type: boolean
+      currency:
+        type: string
+      createdDate:
+        type: string
+        format: date-time
+      completedDate:
+        type: string
+        format: date-time
+      cancelledDate:
+        type: string
+        format: date-time
+      rejectedDate:
+        type: string
+        format: date-time
+      status:
+        type: string
+        description: transaction Status
+        enum:
+          - CREATED
+          - COMPLETED
+          - CANCELLED
+          - REJECTED
+      complete:
+        type: boolean
+        default: false
+    xml:
+      name: Transaction
+  Account:
+    type: object
+    properties:
+      accountNumber:
+        type: integer
+        format: int64
+      customerId:
+        type: integer
+        format: int64
+      type:
+        type: string
+        description: account type
+        enum:
+          - SAVING
+          - CHECKING
+      balance:
+        type: number
+        format: float
+      createdDate:
+        type: string
+        format: date-time
+      active:
+        type: boolean
+        default: true
+    xml:
+      name: User
+  Customer:
+    type: object
+    properties:
+      customerId:
+        type: integer
+        format: int64
+      firstName:
+        type: string
+      lastName:
+        type: string
+      businessNamet:
+        type: string
+      phone:
+        type: string
+      email:
+        type: string
+      addressLine1:
+        type: string
+      addressLine2:
+        type: string
+      city:
+        type: string
+      state:
+        type: string
+      country:
+        type: string
+      customerGrouping:
+        type: string
+        enum:
+          - INDIVIDUAL
+          - BUSINESS
+          - GOVERNMENT
+      owner:
+        type: string
+        description: owner type
+        enum:
+          - SELF
+          - CUSTODIAN
+    xml:
+      name: Customer
+  TransactionInfo:
+    type: object
+    properties:
+      transactionId:
+        type: integer
+        format: int32
+      status:
+        type: string
+      createdDate:
+        type: string
+        format: date-time
+      updatedDate:
+        type: string
+        format: date-time
+      customerId:
+        type: integer
+        format: int32
+      customerFullName:
+        type: string
+      accountNumber:
+        type: integer
+        format: int32
+      accountBalance:
+          type: number
+          format: float
