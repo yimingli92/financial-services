@@ -10,7 +10,7 @@ from datetime import date, datetime
 
 # Lambda Permissions:
 # AWSLambdaVPCAccessExecutionRole
-# remove critical information
+# remove info
 
 # Configuration
 database_endpoint = ''
@@ -67,6 +67,28 @@ def create_transaction_record(record):
     response['status'] = record[9]
     return response
 
+def create_transaction_info(record):
+    response = {}
+    response['transactionId'] = record[0]
+    response['customerId'] = record[1]
+    response['createdDate'] = record[2]
+    status = record[3]
+    response['status'] = status
+    if status == 'COMPLETED':
+        response['updatedDate'] = record[4]
+    elif status == 'CANCELLED':
+        response['updatedDate'] = record[5]
+    elif status == 'REJECTED':
+        response['updatedDate'] = record[6]
+
+    # need flex between business and individual
+    if record[7] == 'BUSINESS':
+        response['customerFullName'] = record[10]
+    else:
+        response['customerFullName'] = str(record[9]) + ', ' + str(record[8])
+    response['accountNumber'] = record[11]
+    response['accountBalance'] = record[12]
+    return response
 
 def create_http_response(response):
     http_response = {}
@@ -79,7 +101,9 @@ def create_http_response(response):
 
 def execute_statement(query, param):
     cursor = connection.cursor()
-    cursor.execute(query.format(param))
+    query_str = query.format(param)
+    print(query_str)
+    cursor.execute(query_str)
     return list(cursor.fetchall())
 
 
@@ -90,10 +114,19 @@ def lambda_handler():
     ids = ['10001', '10002', '10003']
     idin = get_list_str(ids)
 
-    records = execute_statement('SELECT * from Transaction where transactionId in ({})', idin)
+    # records = execute_statement('SELECT * from Transaction where transactionId in ({})', idin)
+    transationId = "10001"
+    query = "SELECT t.transactionId, t.customerId, t.createdDate, t.status, t.completedDate, t.cancelledDate, t.rejectedDate, c.customerGrouping, " \
+            "c.firstName, c.lastName, c.businessName, a.accountNumber, a.balance FROM Transaction t " \
+            "INNER JOIN Customer c ON c.customerId = t.customerId " \
+            "INNER JOIN Account a ON a.customerId = t.customerId " \
+            "WHERE t.transactionId = {} "
+    records = execute_statement(query, transationId)
+
     all_records = []
     for record in records:
-        all_records.append(create_transaction_record(record))
+        # all_records.append(create_transaction_record(record))
+        all_records.append(create_transaction_info(record))
 
     http_response = create_http_response(all_records)
     print(http_response['body'])

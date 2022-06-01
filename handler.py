@@ -10,7 +10,7 @@ from datetime import date, datetime
 
 # Lambda Permissions:
 # AWSLambdaVPCAccessExecutionRole
-# remove critical information
+# remove info
 
 # Configuration
 database_endpoint = ''
@@ -76,21 +76,29 @@ def create_account_record(record):
     return response
 
 
-def create_transaction_info(transaction, customer, account):
+def create_transaction_info(record):
     response = {}
-    response['transactionId'] = transaction[0]
-    response['customerId'] = transaction[1]
-    response['createdDate'] = transaction[5]
-    response['status'] = transaction[9]
-    response['updatedDate'] = transaction[5]  # needs to calculated with all dates
+    response['transactionId'] = record[0]
+    response['customerId'] = record[1]
+    response['createdDate'] = record[2]
+    status = record[3]
+    response['status'] = status
+    if status == 'COMPLETED':
+        response['updatedDate'] = record[4]
+    elif status == 'CANCELLED':
+        response['updatedDate'] = record[5]
+    elif status == 'REJECTED':
+        response['updatedDate'] = record[6]
+
     # need flex between business and individual
-    if customer[11] == 'BUSINESS':
-        response['customerFullName'] = customer[3]
+    if record[7] == 'BUSINESS':
+        response['customerFullName'] = record[10]
     else:
-        response['customerFullName'] = str(customer[2]) + ', ' + str(customer[1])
-    response['accountNumber'] = account[0]
-    response['accountBalance'] = account[3]
+        response['customerFullName'] = str(record[9]) + ', ' + str(record[8])
+    response['accountNumber'] = record[11]
+    response['accountBalance'] = record[12]
     return response
+
 
 def create_http_response(code, records):
     http_response = {}
@@ -131,17 +139,14 @@ def process_transaction_info(method, path, query_params):
 
     all_records = []
     if method == 'GET':
-        query = query_key + '=' + query_value
-        transactions = execute_statement('SELECT * from Transaction where {}', query)
-        for transaction in transactions:
-            customerId = transaction[1]
-            customers = execute_statement('SELECT * from Customer where customerId= {}', customerId)
-            accounts = execute_statement('SELECT * from Account where customerId= {}', customerId)
-            for customer in customers:
-                print(customer)
-            for account in accounts:
-                print(account)
-            all_records.append(create_transaction_info(transaction, customer, account))
+        query = "SELECT t.transactionId, t.customerId, t.createdDate, t.status, t.completedDate, t.cancelledDate, t.rejectedDate, c.customerGrouping, " \
+                "c.firstName, c.lastName, c.businessName, a.accountNumber, a.balance FROM Transaction t " \
+                "INNER JOIN Customer c ON c.customerId = t.customerId " \
+                "INNER JOIN Account a ON a.customerId = t.customerId " \
+                "WHERE t.transactionId = {} "
+        records = execute_statement(query, query_value)
+        for record in records:
+            all_records.append(create_transaction_info(record))
 
     http_response = create_http_response(200, all_records)
     return http_response
