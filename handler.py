@@ -1,5 +1,6 @@
 import pymysql
 import json
+import ast
 from datetime import date, datetime
 
 # 1. Install pymysql to local directory
@@ -7,7 +8,6 @@ from datetime import date, datetime
 
 # 2. (If using lambda) Write your code, then select all files and zip into function.zip
 # a) Mac/Linux --> zip -r9 ${PWD}/function.zip
-
 
 # Configuration
 database_endpoint = ''
@@ -137,16 +137,11 @@ def process_transactions(method, path, event):
         if not ids:
             return response
             
-        records = execute_statement('SELECT * from Transaction where transactionId in ({})', ids)
+        records = execute_statement('SELECT * FROM transactions WHERE transactionid IN ({})', ids)
         for record in records:
             all_records.append(create_transaction_record(record))
             
     elif method == 'POST':
-        # data = json.loads(event['body'])['transactionId']                                             ####Test code
-        # records = execute_statement('SELECT * from Transaction where transactionId in ({})', data)    ####Test code
-        # for record in records:                                                                        ####Test code
-        #     all_records.append(create_transaction_record(record))                                     ####Test code
-        
         cols = ''
         vals = ''
         data = json.loads(event['body'])
@@ -155,7 +150,7 @@ def process_transactions(method, path, event):
             cols += key + ','
             vals += value + ','
             
-        insert_statement = "INSERT INTO Transaction VALUES ({})"
+        insert_statement = "INSERT INTO transactions VALUES ({})"
         
         try:
             execute_statement(insert_statement, vals[:-1])
@@ -167,11 +162,11 @@ def process_transactions(method, path, event):
             last_transaction = cursor.lastrowid
             
             print("\nChecking customers balance to validate transaction...\n")
-            balance_check_statment = "SELECT t.transactionId, t.amount, t.creditOrDebit, t.customerId, t.createdDate, t.status, t.completedDate, t.cancelledDate, t.rejectedDate, c.customerGrouping, " \
-                                    "c.firstName, c.lastName, c.businessName, a.accountNumber, a.balance FROM Transaction t " \
-                                    "INNER JOIN Customer c ON c.customerId = t.customerId " \
-                                    "INNER JOIN Account a ON a.customerId = t.customerId " \
-                                    "WHERE t.transactionId = {}"
+            balance_check_statment = "SELECT t.transactionid, t.amount, t.creditordebit, t.customerid, t.createddate, t.status, t.completeddate, t.cancelleddate, t.rejecteddate, c.customergrouping, " \
+                                    "c.firstname, c.lastname, c.businessname, a.accountnumber, a.balance FROM transactions t " \
+                                    "INNER JOIN customers c ON c.customerid = t.customerid " \
+                                    "INNER JOIN accounts a ON a.customerid = t.customerid " \
+                                    "WHERE t.transactionid = {}"
 
             results = execute_statement(balance_check_statment, last_transaction)
 
@@ -182,9 +177,9 @@ def process_transactions(method, path, event):
 
                     try:
                          ### UPDATING TRANSACTION ###
-                        update_transaction = "UPDATE Transaction " \
-                                    f"SET completedDate = '{datetime.now()}', status = 'COMPLETED' " \
-                                    "WHERE transactionId = {}" 
+                        update_transaction = "UPDATE transactions " \
+                                    f"SET completeddate = '{datetime.now()}', status = 'COMPLETED' " \
+                                    "WHERE transactionid = {}" 
 
                         print("\nUpdating transaction...")
                         execute_statement(update_transaction, last_transaction)
@@ -204,9 +199,9 @@ def process_transactions(method, path, event):
                             transaction_type = "Debit"
                             new_balance = result[-1] + result[1]
 
-                        update_balance = "UPDATE Account "\
+                        update_balance = "UPDATE accounts "\
                             f"SET balance = {new_balance} "\
-                            "WHERE accountNumber = {}"
+                            "WHERE accountnumber = {}"
 
                         account_num = result[-2]
 
@@ -226,9 +221,9 @@ def process_transactions(method, path, event):
                 else:
                     print(f"\nCustomer has insufficient funds for transaction #{last_transaction}...\nRejecting transaction...")
 
-                    update_transaction = "UPDATE Transaction "\
-                                            f"SET rejectedDate = '{datetime.now()}', status = 'REJECTED' " \
-                                            "WHERE transactionId = {}"
+                    update_transaction = "UPDATE transactions "\
+                                            f"SET rejecteddate = '{datetime.now()}', status = 'REJECTED' " \
+                                            "WHERE transactionid = {}"
 
                     try:
                         print("\nUpdating transaction...")
@@ -242,7 +237,7 @@ def process_transactions(method, path, event):
                         print("\nError: ", e)  
                         connection.rollback() 
                         
-            records = execute_statement('SELECT * from Transaction where transactionId in ({})', last_transaction)
+            records = execute_statement('SELECT * from transactions where transactionid in ({})', last_transaction)
             for record in records:
                 all_records.append(create_transaction_record(record))
 
@@ -265,11 +260,12 @@ def process_transaction_info(method, path, query_params):
 
     all_records = []
     if method == 'GET':
-        query = "SELECT t.transactionId, t.customerId, t.createdDate, t.status, t.completedDate, t.cancelledDate, t.rejectedDate, c.customerGrouping, " \
-                "c.firstName, c.lastName, c.businessName, a.accountNumber, a.balance FROM Transaction t " \
-                "INNER JOIN Customer c ON c.customerId = t.customerId " \
-                "INNER JOIN Account a ON a.customerId = t.customerId " \
-                "WHERE t.transactionId = {} "
+        query = "SELECT t.transactionid, t.customerid, t.createddate, t.status, t.completeddate, t.cancelleddate, t.rejecteddate, c.customergrouping, " \
+                "c.firstname, c.lastname, c.businessname, a.accountnumber, a.balance FROM transactions t " \
+                "INNER JOIN customers c ON c.customerid = t.customerid " \
+                "INNER JOIN accounts a ON a.customerid = t.customerid " \
+                "WHERE t.transactionid = {} "
+        
         records = execute_statement(query, query_value)
         for record in records:
             all_records.append(create_transaction_info(record))
@@ -287,7 +283,7 @@ def process_accounts(method, path, event):
         if not ids:
             return response
         
-        records = execute_statement('SELECT * from Account where accountNumber in ({})', ids)
+        records = execute_statement('SELECT * from accounts where accountNumber in ({})', ids) 
         for record in records:
             all_records.append(create_account_record(record))            
     
@@ -300,7 +296,7 @@ def process_accounts(method, path, event):
             cols += key + ','
             vals += value + ','
 
-        insert_statement = "INSERT INTO Account VALUES ({})"
+        insert_statement = "INSERT INTO accounts VALUES ({})" 
 
         try:
             execute_statement(insert_statement, vals[:-1])
@@ -310,7 +306,7 @@ def process_accounts(method, path, event):
             print("Number of records inserted: ", cursor.rowcount)
             print("Account number of inserted record:", cursor.lastrowid)
             last_account = cursor.lastrowid
-            records = execute_statement('SELECT * from Account where accountNumber in ({})', last_account)
+            records = execute_statement('SELECT * from accounts where accountNumber in ({})', last_account)
             for record in records:
                 all_records.append(create_account_record(record))
             
@@ -331,8 +327,8 @@ def process_customers(method, path, event):
         ids = get_path_ids(path)
         if not ids:
             return response
-        
-        records = execute_statement('SELECT * FROM Customer where customerID in ({})', ids)
+
+        records = execute_statement('SELECT * FROM customers where customerID in ({})', ids) 
         for record in records:
             all_records.append(create_customer_record(record))
             
@@ -345,7 +341,7 @@ def process_customers(method, path, event):
             cols += key + ','
             vals += value + ','
 
-        insert_statement = "INSERT INTO Customer VALUES ({})"
+        insert_statement = "INSERT INTO customers VALUES ({})" 
 
         try:
             execute_statement(insert_statement, vals[:-1])
@@ -355,7 +351,7 @@ def process_customers(method, path, event):
             print("Number of records inserted: ", cursor.rowcount)
             print("CustomerID of inserted record:", cursor.lastrowid)
             last_customer = cursor.lastrowid
-            records = execute_statement('SELECT * from Customer where customerID in ({})', last_customer)
+            records = execute_statement('SELECT * FROM customers where customerID in ({})', last_customer)
             for record in records:
                 all_records.append(create_customer_record(record))
 
