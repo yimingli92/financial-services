@@ -1,12 +1,12 @@
-swagger: "2.0"
+swagger: '2.0'
 info:
-  description: "This is a financial transaction service API"
-  version: "1.0.0"
-  title: "Swagger financial API"
+  description: This is a financial transaction service API
+  version: 1.0.0
+  title: Swagger financial API
   license:
-    name: "Apache 2.0"
-    url: "http://www.apache.org/licenses/LICENSE-2.0.html"
-basePath: "/v2"
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+basePath: /v2
 tags:
   - name: transaction
     description: a transaction to a specific customer's account
@@ -15,7 +15,11 @@ tags:
   - name: account
     description: information about a customer's account
   - name: transactionInfo
-    description: transactionInfo is for a transaction with customer and account information
+    description: transactionInfo is for a transaction with customer, account, and alert information
+  - name: users
+    description: information about a user account logins
+  - name: alerts
+    description: information about a alert reasons
 schemes:
   - https
   - http
@@ -73,7 +77,9 @@ paths:
     get:
       tags:
         - transactionInfo
-      summary: Find transactionInfo with customer and account information by transaction ID
+      summary: >-
+        Find transactionInfo with customer and account information by
+        transaction ID
       description: Returns a single transactionInfo with customer and account information
       operationId: getTransactionInfoById
       produces:
@@ -82,7 +88,9 @@ paths:
       parameters:
         - name: transactionId
           in: query
-          description: ID of transaction that needs to be considered for filter and join with customer and account
+          description: >-
+            ID of transaction that needs to be considered for filter and join
+            with customer and account
           required: true
           type: integer
           format: int64
@@ -120,8 +128,8 @@ paths:
         - customer
       summary: Find a customer by ID
       description: >-
-        For valid response try integer IDs with value >= 1 and <= 10.
-        Other values will generated exceptions
+        For valid response try integer IDs with value >= 1 and <= 10. Other
+        values will generated exceptions
       operationId: getCustomerById
       produces:
         - application/xml
@@ -173,8 +181,8 @@ paths:
         - account
       summary: Find a account by ID
       description: >-
-        For valid response try integer IDs with value >= 1 and <= 10.
-        Other values will generated exceptions
+        For valid response try integer IDs with value >= 1 and <= 10. Other
+        values will generated exceptions
       operationId: getAccountById
       produces:
         - application/xml
@@ -197,6 +205,83 @@ paths:
           description: Invalid ID supplied
         '404':
           description: Customer not found
+  /users:
+    post:
+      tags:
+        - users
+      description: ''
+      operationId: createLoginAttempt
+      produces:
+        - application/xml
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          description: create a user login attempt
+          required: true
+          schema:
+            $ref: '#/definitions/Users'
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/Users'
+        '400':
+          description: Invalid User account
+  /users/{accountNumber}:
+    get:
+      tags:
+        - users
+      summary: Find a user's account by accountNumber
+      description: >-
+        For valid response try integer IDs with value >= 1 and <= 10. Other
+        values will generated exceptions
+      operationId: getUserByAccountNumber
+      produces:
+        - application/xml
+        - application/json
+      parameters:
+        - name: accountNumber
+          in: path
+          description: accountNumber of user that needs to be fetched
+          required: true
+          type: integer
+          maximum: 10
+          minimum: 1
+          format: int64
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/Users'
+        '400':
+          description: Invalid accountNumber supplied
+        '404':
+          description: Account not found
+  /alerts:
+    post:
+      tags:
+        - alerts
+      description: ''
+      operationId: createAlertReason
+      produces:
+        - application/xml
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          description: create a Alert Reason
+          required: true
+          schema:
+            $ref: '#/definitions/Alerts'
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/Alerts'
+        '400':
+          description: Invalid Alert info
+  
 definitions:
   Transaction:
     type: object
@@ -234,6 +319,9 @@ definitions:
           - COMPLETED
           - CANCELLED
           - REJECTED
+      alertID:
+        type: integer
+        format: int32
       complete:
         type: boolean
         default: false
@@ -275,7 +363,7 @@ definitions:
         type: string
       lastName:
         type: string
-      businessNamet:
+      businessName:
         type: string
       phone:
         type: string
@@ -308,6 +396,9 @@ definitions:
   TransactionInfo:
     type: object
     properties:
+      alertID:
+        type: integer
+        format: int32
       transactionId:
         type: integer
         format: int32
@@ -328,5 +419,31 @@ definitions:
         type: integer
         format: int32
       accountBalance:
-          type: number
-          format: float
+        type: number
+        format: float
+      alertReason:
+        type: string
+  Users:
+    type: object
+    properties:
+      userID:
+        type: integer
+        format: int64
+      accountNumber:
+        type: integer
+        format: int64
+      pwd_reset_date:
+        type: string
+        format: date-time
+    xml:
+      name: Users
+  Alerts:
+    type: object
+    properties:
+      alertID:
+        type: integer
+        format: int32
+      alertReason:
+        type: string
+    xml:
+      name: Alerts
