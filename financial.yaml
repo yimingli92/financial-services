@@ -17,9 +17,9 @@ tags:
   - name: transactionInfo
     description: transactionInfo is for a transaction with customer, account, and alert information
   - name: users
-    description: information about a user account logins
+    description: information about a user accounts and password reset attempts
   - name: alerts
-    description: information about a alert reasons
+    description: information about a transaction alerts
 schemes:
   - https
   - http
@@ -206,6 +206,30 @@ paths:
         '404':
           description: Customer not found
   /users:
+    get:
+      tags:
+        - users
+      summary: Find a user's account by accountNumber
+      description: >-
+        For valid response try integer IDs with value >= 1 and <= 10. Other
+        values will generated exceptions
+      operationId: getUserByAccountNumber
+      produces:
+        - application/xml
+        - application/json
+      parameters:
+        - name: accountNumber
+          in: query
+          description: accountNumber of user that needs to be fetched
+          required: true
+          type: integer
+          format: int64
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/Users'
+  
     post:
       tags:
         - users
@@ -228,49 +252,43 @@ paths:
             $ref: '#/definitions/Users'
         '400':
           description: Invalid User account
-  /users/{accountNumber}:
+          
+  /alerts:
     get:
       tags:
-        - users
-      summary: Find a user's account by accountNumber
+        - alerts
+      summary: Find an alert by transactionId
       description: >-
         For valid response try integer IDs with value >= 1 and <= 10. Other
         values will generated exceptions
-      operationId: getUserByAccountNumber
+      operationId: getAlertByTransactionId
       produces:
         - application/xml
         - application/json
       parameters:
-        - name: accountNumber
-          in: path
-          description: accountNumber of user that needs to be fetched
+        - name: transactionId
+          in: query
+          description: transactionId of alert that needs to be fetched
           required: true
           type: integer
-          maximum: 10
-          minimum: 1
           format: int64
       responses:
         '200':
           description: successful operation
           schema:
-            $ref: '#/definitions/Users'
-        '400':
-          description: Invalid accountNumber supplied
-        '404':
-          description: Account not found
-  /alerts:
+            $ref: '#/definitions/Alerts'
     post:
       tags:
         - alerts
       description: ''
-      operationId: createAlertReason
+      operationId: createAlert
       produces:
         - application/xml
         - application/json
       parameters:
         - in: body
           name: body
-          description: create a Alert Reason
+          description: create an Alert
           required: true
           schema:
             $ref: '#/definitions/Alerts'
@@ -319,9 +337,6 @@ definitions:
           - COMPLETED
           - CANCELLED
           - REJECTED
-      alertID:
-        type: integer
-        format: int32
       complete:
         type: boolean
         default: false
@@ -396,9 +411,6 @@ definitions:
   TransactionInfo:
     type: object
     properties:
-      alertID:
-        type: integer
-        format: int32
       transactionId:
         type: integer
         format: int32
@@ -421,29 +433,44 @@ definitions:
       accountBalance:
         type: number
         format: float
-      alertReason:
-        type: string
   Users:
     type: object
     properties:
-      userID:
+      userId:
         type: integer
         format: int64
       accountNumber:
         type: integer
         format: int64
-      pwd_reset_date:
+      last_pwd_reset_date:
         type: string
         format: date-time
-    xml:
-      name: Users
+      createDate:
+        type: string
+        format: date-time
+      active:
+        type: boolean
+        default: true
+      
   Alerts:
     type: object
     properties:
-      alertID:
+      alertId:
         type: integer
         format: int32
-      alertReason:
+      transactionId:
+        type: integer
+        format: int32
+      accountNumber:
+        type: integer
+        format: int32
+      reason:
         type: string
+      status:
+        type: string
+        description: alert status
+        enum: 
+          - ACTIVE
+          - DISMISSED
     xml:
       name: Alerts
