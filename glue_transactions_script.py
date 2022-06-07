@@ -26,8 +26,14 @@ datasource0 = glueContext.create_dynamic_frame.from_catalog(database = "financia
 ## @args: [mapping = [("transactionid", "long", "transactionid", "long"), ("customerid", "long", "customerid", "long"), ("amount", "double", "amount", "double"), ("creditordebit", "long", "creditordebit", "long"), ("currency", "string", "currency", "string"), ("createddate", "string", "createddate", "string"), ("completeddate", "string", "completeddate", "string"), ("cancelleddate", "string", "cancelleddate", "string"), ("rejecteddate", "string", "rejecteddate", "string"), ("status", "string", "status", "string")], transformation_ctx = "applymapping1"]
 ## @return: applymapping1
 ## @inputs: [frame = datasource0]
+def date_convt(dt):
+    if dt is None:
+        return
+
+    return spark_f.to_timestamp(dt, 'yyyy-MM-dd HH:mm:ss')
+
 df = datasource0.toDF()
-modified_df = df.withColumn("createddate", spark_f.to_timestamp("createddate", 'yyyy-MM-dd HH:mm:ss')).withColumn("completeddate", spark_f.to_timestamp("completeddate", 'yyyy-MM-dd HH:mm:ss')).withColumn("cancelleddate", spark_f.to_timestamp("cancelleddate", 'yyyy-MM-dd HH:mm:ss')).withColumn("rejecteddate", spark_f.to_timestamp("rejecteddate", 'yyyy-MM-dd HH:mm:ss'))
+modified_df = df.withColumn("createddate", date_convt(df['createddate'])).withColumn("completeddate", date_convt(df['completeddate'])).withColumn("cancelleddate", date_convt(df['cancelleddate'])).withColumn("rejecteddate", date_convt(df["rejecteddate"]))
 
 modified_dyf = DynamicFrame.fromDF(modified_df, glueContext, "modified_dyf")
 

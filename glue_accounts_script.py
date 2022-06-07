@@ -34,9 +34,14 @@ datasource0 = glueContext.create_dynamic_frame.from_catalog(database = "financia
 ## @return: applymapping1
 ## @inputs: [frame = datasource0]
 df = datasource0.toDF()
-modified_df = df.withColumn("createddate", spark_f.to_timestamp("createddate", 'yyyy-MM-dd HH:mm:ss'))
 
+def date_convt(dt):
+    if dt is None:
+        return
 
+    return spark_f.to_timestamp(dt, 'yyyy-MM-dd HH:mm:ss')
+
+modified_df = df.withColumn("createddate", date_convt(df["createddate"]))
 modified_dyf = DynamicFrame.fromDF(modified_df, glueContext, "modified_dyf")
 applymapping1 = ApplyMapping.apply(frame = modified_dyf, mappings = [("accountnumber", "long", "accountnumber", "long"), ("customerid", "long", "customerid", "long"), ("type", "string", "type", "string"), ("balance", "double", "balance", "double"), ("createddate", "timestamp", "createddate", "timestamp"), ("active", "int", "active", "tinyint")], transformation_ctx = "applymapping1")
 
